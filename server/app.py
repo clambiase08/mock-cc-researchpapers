@@ -33,7 +33,13 @@ class ResearchById(Resource):
     def get(self, id):
         research = Research.query.get_or_404(
             id, description="Research paper not found"
-        ).to_dict(rules=("-researchauthors",))
+        ).to_dict(
+            rules=(
+                "-researchauthors",
+                "authors",  # this makes sure the authors is included
+                "-authors.researchauthors",  # this makes sure the research authors is not included on the authors we added back
+            )
+        )
         return make_response(research, 200)
 
     def delete(self, id):
@@ -61,11 +67,11 @@ class ResearchAuthors(Resource):
         try:
             new_researchauthors = ResearchAuthor(**data)
         except Exception as e:
-            abort(406, errors=["validation errors"])
+            abort(422, errors=["validation errors"])
         db.session.add(new_researchauthors)
         db.session.commit()
         return make_response(
-            new_researchauthors.to_dict(),
+            new_researchauthors.author.to_dict(rules=("-researchauthors",)),
             201,
         )
 
